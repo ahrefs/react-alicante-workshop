@@ -1,0 +1,38 @@
+opam-version: "2.0"
+synopsis: "React Alicante workshop"
+description: "React Alicante workshop"
+maintainer: ["Javier Chávarri <javier.chavarri@ahrefs.com>"]
+authors: ["Javier Chávarri <javier.chavarri@ahrefs.com>"]
+license: "MIT"
+tags: ["reasonml" "ocaml" "melange" "react"]
+homepage: "https://github.com/ahrefs/react-alicante-workshop"
+doc: "https://github.com/ahrefs/react-alicante-workshop"
+bug-reports:
+  "https://github.com/ahrefs/react-alicante-workshop/issues"
+depends: [
+  "dune"
+  "melange" {>= "4.0.1-52"}
+  "ocaml"
+  "opam-check-npm-deps"
+  "ppx_deriving"
+  "reason"
+  "reason-react"
+  "reason-react-ppx"
+  "ocaml-lsp-server"
+  "odoc" {with-doc}
+]
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+]
+dev-repo: "git+https://github.com/ahrefs/react-alicante-workshop.git"

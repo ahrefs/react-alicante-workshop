@@ -1,0 +1,19 @@
+; This stanza tells Dune to check all folders except those that don't contain
+; sources. Note that we don't need to explicitly exclude _build and _opam
+; because Dune ignores folders starting with underscore by default.
+;
+; Docs: https://dune.readthedocs.io/en/stable/reference/dune/dirs.html
+
+(dirs :standard \ dist node_modules)
+
+; This stanza is the one that tells Dune we want to compile our ReasonReact
+; components to JS.
+;
+; Docs: https://dune.readthedocs.io/en/stable/melange.html
+
+(melange.emit
+ (target output)
+ (alias react_alicante_workshop)
+ (libraries app)
+ (module_systems
+  (es6 mjs)))
