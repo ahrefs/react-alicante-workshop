@@ -146,9 +146,9 @@ To make sure everything is working correctly, you should be able to hover over
 option(Dom.element)`. If that's the case, go to definition and all other editor
 features should work. We're now ready to start coding!
 
-## Step 2: Our First ReasonReact Component
+## Step 2: Our first ReasonReact component
 
-### 2.1: Development Commands
+### 2.1: Development commands
 
 To keep things organized while working on the project, we'll use two separate
 terminals:
@@ -175,8 +175,8 @@ function annotated with the `@react.component`
 
 > Hint: In order to create this new component, take the `h1` and `h2` from
 > `App.re`, and move them to a new file `Hello.re` wrapping them with a fragment
-> `<>` and a `make` function. Then use the new component from `App` using JSX:
-> `<Hello />`.
+> `<>` and a `make` function. Then use the new component from `App` using
+> [JSX](https://reasonml.github.io/docs/en/jsx): `<Hello />`.
 
 ### Step 2 completion check
 
