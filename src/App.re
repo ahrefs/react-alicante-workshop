@@ -30,10 +30,10 @@ module App = {
            * but with explicit conversion for better type safety and clarity in
            * the OCaml ecosystem.
            */
-           {React.string("Write maintainable React applications using OCaml")} </h1>
+           {React.string("Hello Alicante!")} </h1>
         <h2
           className="mb-3 border-b-2 bg-gradient-to-r from-[#ee99a0] to-[#f5a97f] bg-clip-text text-4xl  font-black text-transparent pb-1">
-          {React.string("Hello Alicante!")}
+          {React.string("Write maintainable React applications using OCaml")}
         </h2>
       </div>
     </>;
