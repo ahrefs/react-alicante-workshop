@@ -1,0 +1,6 @@
+_build/
+_opam/
+.vscode
+dist/
+node_modules/
+.DS_Store
