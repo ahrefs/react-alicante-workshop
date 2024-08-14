@@ -188,7 +188,7 @@ it did before starting this step.
 
 The following is a high level view of your project and application. Many of
 these files will contain additional comments, explanations, examples, and help
-for learning and getting started with OCaml, Reason and Melange.
+for learning and getting started with OCaml, Reason, and Melange.
 
 ```
 react-alicante-workshop
