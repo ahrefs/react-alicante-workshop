@@ -103,6 +103,11 @@ cd react-alicante-workshop
 Proceed to run `npm run init` in order to download the workshop required
 packages from both npm and opam repositories.
 
+> [!IMPORTANT]
+> 
+> This process will download, build and install the OCaml compiler, so it can
+> take at least 5 minutes or more, depending on the laptop and network capacity.
+
 ### Step 0 completion check
 
 Once all dependencies are installed, you should be able to run `npm run build`
