@@ -43,7 +43,7 @@ Do you want opam to modify ~/.zshrc? [N/y/f]
 
 Type `y` to agree.
 
-> **Warning**
+> [!WARNING]
 > 
 > If it asks
 > 
