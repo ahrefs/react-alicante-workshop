@@ -326,12 +326,6 @@ content. You should see something like this:
 
 ![Console log - printing some runtime values](README-imgs/console-log.png)
 
-> [!TIP]
-> 
-> Create a new file `Feed.re` to keep these type definitions separate from the
-> UI code. As we saw before, we are able to use its values from other modules by
-> namespacing it, e.g. `Feed.foo`.
-
 Next, we’ll explore an easier way to decode data from JSON.
 
 ## Project layout
