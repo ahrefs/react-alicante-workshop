@@ -212,16 +212,16 @@ This endpoint doesn’t require API keys and works as follows:
 > simplicity.
 
 In this step, we’ll define some OCaml types to represent this data in our
-application. We’ll use records for the objects and lists for the arrays. Refer
-to the Reason documentation for details:
-- [Records](https://reasonml.github.io/docs/en/record)
-- [Lists](https://reasonml.github.io/docs/en/basic-structures#list)
+application. Refer to the Reason documentation for details:
+- [Records](https://reasonml.github.io/docs/en/record) are used to represent the
+  JSON objects
+- [Arrays](https://reasonml.github.io/docs/en/basic-structures#array)
 - [Options](https://reasonml.github.io/docs/en/option)
 
 We need:
-- A type for the feed
-- A type for an entry
 - A type for a link
+- A type for an entry
+- A type for the feed
 
 > [!TIP]
 > 
@@ -266,13 +266,13 @@ module Decode = {
   let entry = json =>
     Json.Decode.{
       Entry.content: json |> optional(field("content", string)),
-      links: json |> field("links", list(link)),
+      links: json |> field("links", array(link)),
       title: json |> field("title", string),
       updated: json |> field("updated", float),
     };
 
   let feed = json =>
-    Json.Decode.{entries: json |> field("entries", list(entry))};
+    Json.Decode.{entries: json |> field("entries", array(entry))};
 };
 
 let data = {| {
@@ -325,11 +325,6 @@ When you open the browser to view the page, check the console for the logged
 content. You should see something like this:
 
 ![Console log - printing some runtime values](README-imgs/console-log.png)
-
-> [!NOTE]
-> 
-> Can you figure out why the `hd` and `tl` values appear in the `entries` record
-> field?
 
 Next, we’ll explore an easier way to decode data from JSON.
 
