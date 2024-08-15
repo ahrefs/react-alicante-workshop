@@ -137,12 +137,12 @@ extension](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-p
 At the bottom of the VSCode window, you should see
 `opam(react-alicante-workshop)`:
 
-![VSCode OCaml selected sandbox](vscode-selected-sandbox.png)
+![VSCode OCaml selected sandbox](README-imgs/vscode-selected-sandbox.png)
 
 If that's not the case, click on that 📦 button, and select
 `react-alicante-workshop` from the list that will appear:
 
-![VSCode OCaml sandbox selector](vscode-sandbox-selector.png)
+![VSCode OCaml sandbox selector](README-imgs/vscode-sandbox-selector.png)
 
 ### Step 1 completion check
 
@@ -188,6 +188,145 @@ function annotated with the `@react.component`
 We only did a small refactor, so the build tab running `npm run build` should
 show no errors, and the local page under http://localhost:8080/ should look like
 it did before starting this step.
+
+## Step 3: Modeling data
+
+To build our GitHub activity feed reader, we'll eventually fetch data from this
+endpoint: [https://gh-feed.vercel.app/api](https://gh-feed.vercel.app/api).
+
+This endpoint doesn’t require API keys and works as follows:
+- It accepts two query parameters: `user` (a `string`) and `page` (an `int`).
+  For example: `https://gh-feed.vercel.app/api?user=jchavarri&page=1`
+- It returns an object (let's call it `feed`) with a key `entries`, which is an
+  array of feed entries. Each entry has the following structure:
+  - **content**: The content of the entry, contains HTML as a string (optional).
+  - **links**: An array of associated links, each with:
+    - **href**: The URL the link points to (`string`).
+    - **title**: The link title or description (`string`).
+  - **title**: The entry title (`string`).
+  - **updated**: A timestamp of the last update (`float`).
+
+> [!NOTE]
+> 
+> There are other keys in the returned data, but we will ignore them for
+> simplicity.
+
+In this step, we’ll define some OCaml types to represent this data in our
+application. Refer to the Reason documentation for details:
+- [Records](https://reasonml.github.io/docs/en/record) are used to represent the
+  JSON objects
+- [Arrays](https://reasonml.github.io/docs/en/basic-structures#array)
+- [Options](https://reasonml.github.io/docs/en/option)
+
+We will need:
+- A type `link` (i.e. `type link = ...`)
+- A type `entry`
+- A type `feed`
+
+> [!TIP]
+> 
+> Create a new file `Feed.re` to keep these type definitions separate from the
+> UI code. As we saw before, we are able to use its values from other modules by
+> namespacing it, e.g. `Feed.foo`.
+
+### Step 3 completion check
+
+Ensure your application builds successfully (`Success` in the `npm run watch`
+terminal). We may need to adjust these types later when we decode the data.
+
+## Step 4: Decoding data (the hard way)
+
+Once you have these types defined, we will be adding some code to take the
+values from the JSON and decode them into values of the types we have defined.
+
+First, install the
+[melange-json](https://github.com/melange-community/melange-json) library:
+
+```sh
+opam install melange-json
+```
+
+Then, modify the `libraries` field in the `src/dune` file to include
+`melange-json`:
+
+```dune
+(libraries melange-json reason-react)
+```
+
+Now we’re ready to decode JSON into our types. Add a `Decode` module inside
+`Feed.re` with the following code:
+
+```reason
+module Decode = {
+  let link = json =>
+    Json.Decode.{
+      href: json |> field("href", string),
+      title: json |> field("title", string),
+    };
+  let entry = json =>
+    Json.Decode.{
+      content: json |> optional(field("content", string)),
+      links: json |> field("links", array(link)),
+      title: json |> field("title", string),
+      updated: json |> field("updated", float),
+    };
+
+  let feed = json =>
+    Json.Decode.{entries: json |> field("entries", array(entry))};
+};
+
+let data = {| {
+  "entries": [
+    {
+      "content": "<div>Hello</div>",
+      "links": [
+        {
+          "title": "",
+          "href": "https://github.com/melange-community/melange-json"
+        }
+      ],
+      "title": "jchavarri starred melange-community/melange-json",
+      "updated": 1723639727000.0
+    }
+  ]
+} |};
+
+let demoFeed =
+  try(Some(data |> Json.parseOrRaise |> Decode.feed)) {
+  | Json.Decode.DecodeError(msg) =>
+    Js.log(msg);
+    None;
+  };
+```
+
+This code demonstrates several key features:
+- The [pipe
+  operator](https://melange.re/v4.0.0/communicate-with-javascript.html#pipe-last)
+  `|>` sends the value on its right as the last argument to the function on the
+  left, enabling clean, step-by-step data processing.
+- Local module [opens](https://reasonml.github.io/docs/en/module#local-opens)
+  like `Json.Decode.{ ... }` let us simplify the code by avoiding repetitive
+  module prefixes.
+- Exception handling uses `try` similar to JavaScript, but with [pattern
+  matching](https://reasonml.github.io/docs/en/pattern-matching) for the `catch`
+  part.
+- To ensure consistent return types in the exception handling, we leverage
+  [optional types](https://reasonml.github.io/docs/en/option).
+
+### Step 4 completion check
+
+Add this debug line at the bottom of `App.re`:
+
+```reason
+Js.log(Feed.demoFeed)
+```
+
+When you open the browser to view the page, check the console for the logged
+content. You should see something like this:
+
+![Console log - printing some runtime values](README-imgs/console-log.png)
+
+Next, we’ll explore an easier way to decode data from JSON.
 
 ## Project layout
 
