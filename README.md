@@ -218,10 +218,10 @@ application. Refer to the Reason documentation for details:
 - [Arrays](https://reasonml.github.io/docs/en/basic-structures#array)
 - [Options](https://reasonml.github.io/docs/en/option)
 
-We need:
-- A type for a link
-- A type for an entry
-- A type for the feed
+We will need:
+- A type `link` (i.e. `type link = ...`)
+- A type `entry`
+- A type `feed`
 
 > [!TIP]
 > 
@@ -260,12 +260,12 @@ Now we’re ready to decode JSON into our types. Add a `Decode` module inside
 module Decode = {
   let link = json =>
     Json.Decode.{
-      Link.href: json |> field("href", string),
+      href: json |> field("href", string),
       title: json |> field("title", string),
     };
   let entry = json =>
     Json.Decode.{
-      Entry.content: json |> optional(field("content", string)),
+      content: json |> optional(field("content", string)),
       links: json |> field("links", array(link)),
       title: json |> field("title", string),
       updated: json |> field("updated", float),
@@ -325,6 +325,12 @@ When you open the browser to view the page, check the console for the logged
 content. You should see something like this:
 
 ![Console log - printing some runtime values](README-imgs/console-log.png)
+
+> [!TIP]
+> 
+> Create a new file `Feed.re` to keep these type definitions separate from the
+> UI code. As we saw before, we are able to use its values from other modules by
+> namespacing it, e.g. `Feed.foo`.
 
 Next, we’ll explore an easier way to decode data from JSON.
 
