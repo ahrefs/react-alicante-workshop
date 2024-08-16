@@ -328,6 +328,111 @@ content. You should see something like this:
 
 Next, we’ll explore an easier way to decode data from JSON.
 
+## Step 5: Decoding data (the easy way)
+
+Manually writing the `Decode` module, as we did earlier, might not be the best
+use of our time. This kind of code can be automatically derived from the type
+definitions, and it's easy to introduce subtle mistakes that lead to runtime
+errors.
+
+Fortunately, OCaml provides a mechanism for generating new code from existing
+code, known as "preprocessor extensions" or
+[PPXs](https://ocaml.org/docs/metaprogramming).
+
+OCaml allows us to decorate code with attributes, which look like this:
+`[@foo]`. These attributes can be attached to expressions, functions, or types
+to trigger specific code transformations. For example:
+
+```reason
+[@foo]
+let x = 1;
+```
+
+Or, with a type definition:
+
+```reason
+[@foo]
+type t = {
+  name: string,
+  age: int,
+};
+```
+
+PPXs will pick up this attribute at compilation time and make syntactic
+modifications to the code. You can think of PPXs as similar to Babel plugins in
+JavaScript, which perform transformations during the build process.
+
+If you want to read more about PPXs, [this
+article](https://tarides.com/blog/2019-05-09-an-introduction-to-ocaml-ppx-ecosystem/)
+provides a great introduction.
+
+> [!TIP]
+> 
+> You might have noticed that these attributes look similar to the ones used to
+> define components. That's right! ReasonReact is also a PPX, and decorators
+> like `[@react.component]` are used to generate additional code automatically.
+
+To generate our decoders automatically, we will use the PPX included with
+`melange-json`, which we installed in the previous step.
+
+First, modify the `preprocess` field in the `src/dune` file to include
+`melange-json.ppx`:
+
+```dune
+ (preprocess
+  (pps melange.ppx melange-json.ppx reason-react-ppx))
+```
+
+Then, annotate all types in `Feed.re` with `[@deriving json]`, for example:
+
+```reason
+[@deriving json]
+type link = {
+  href: string,
+  title: string,
+};
+```
+
+Next, we need to bring in the functions that decode primitive types like
+`string` or `int`, such as `string_of_json`. Since there are quite a few of
+these functions, it’s practical to
+[open](https://reasonml.github.io/docs/en/module#opening-modules) the module and
+make all its functions available within the scope of the `Feed` module. You can
+do this by adding this line at the top of `Feed.re`:
+
+```reason
+open Ppx_deriving_json_runtime.Primitives;
+```
+
+> [!WARNING]
+> 
+> In most cases, `open` should not be used at the top level of a module. It’s
+> usually better to use a [local
+> open](https://reasonml.github.io/docs/en/module#local-opens) which limits the
+> scope of the opened module’s functions to a specific function or submodule.
+
+Now, you can remove the entire `Decode` module, as conversion functions like
+`feed_to_json` and `feed_of_json` are generated automatically by the PPX.
+
+Finally, modify the `demoFeed` function to use the newly generated function:
+
+```reason
+let demoFeed =
+  try(Some(data |> Json.parseOrRaise |> feed_of_json)) {
+  | Json.Decode.DecodeError(msg) =>
+    Js.log(msg);
+    None;
+  };
+```
+
+### Step 5 completion check
+
+We refactored the code to remove some manual decoding logic and introduced the
+`melange-json` PPX, but the behavior remains unchanged. Open the browser console
+to confirm that our debugging object is still displayed:
+
+![Console log - printing some runtime values](README-imgs/console-log.png)
+
 ## Project layout
 
 The following is a high level view of your project and application. Many of
