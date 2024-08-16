@@ -400,8 +400,8 @@ by adding this line at the top of `Feed.re`:
 open Ppx_deriving_json_runtime.Primitives;
 ```
 
-Now, you can remove the entire `Decode` module, as the functions are generated
-automatically by the PPX.
+Now, you can remove the entire `Decode` module, as conversion functions like
+`feed_to_json` and `feed_of_json` are generated automatically by the PPX.
 
 Finally, modify the `demoFeed` function to use the newly generated function:
 
