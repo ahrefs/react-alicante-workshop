@@ -4,4 +4,4 @@
  (libraries melange-json reason-react)
  (melange.runtime_deps img/camel-fun.jpg)
  (preprocess
-  (pps melange.ppx reason-react-ppx)))
+  (pps melange.ppx melange-json.ppx reason-react-ppx)))

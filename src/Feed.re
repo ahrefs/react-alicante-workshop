@@ -1,8 +1,12 @@
+open Ppx_deriving_json_runtime.Primitives;
+
+[@deriving json]
 type link = {
   href: string,
   title: string,
 };
 
+[@deriving json]
 type entry = {
   content: option(string),
   id: string,
@@ -11,26 +15,8 @@ type entry = {
   updated: float,
 };
 
+[@deriving json]
 type feed = {entries: array(entry)};
-
-module Decode = {
-  let link = json =>
-    Json.Decode.{
-      href: json |> field("href", string),
-      title: json |> field("title", string),
-    };
-  let entry = json =>
-    Json.Decode.{
-      content: json |> optional(field("content", string)),
-      id: json |> field("id", string),
-      links: json |> field("links", array(link)),
-      title: json |> field("title", string),
-      updated: json |> field("updated", float),
-    };
-
-  let feed = json =>
-    Json.Decode.{entries: json |> field("entries", array(entry))};
-};
 
 let data = {| {
   "entries": [
@@ -50,7 +36,7 @@ let data = {| {
 } |};
 
 let demoFeed =
-  try(Some(data |> Json.parseOrRaise |> Decode.feed)) {
+  try(Some(data |> Json.parseOrRaise |> feed_of_json)) {
   | Json.Decode.DecodeError(msg) =>
     Js.log(msg);
     None;
