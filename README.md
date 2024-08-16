@@ -393,12 +393,23 @@ type link = {
 };
 ```
 
-Next, open the PPX module that provides the functions to convert primitive types
-by adding this line at the top of `Feed.re`:
+Next, we need to bring in the functions that decode primitive types like
+`string` or `int`, such as `string_of_json`. Since there are quite a few of
+these functions, it’s practical to
+[open](https://reasonml.github.io/docs/en/module#opening-modules) the module and
+make all its functions available within the scope of the `Feed` module. You can
+do this by adding this line at the top of `Feed.re`:
 
 ```reason
 open Ppx_deriving_json_runtime.Primitives;
 ```
+
+> [!WARNING]
+> 
+> In most cases, `open` should not be used at the top level of a module. It’s
+> usually better to use a [local
+> open](https://reasonml.github.io/docs/en/module#local-opens) which limits the
+> scope of the opened module’s functions to a specific function or submodule.
 
 Now, you can remove the entire `Decode` module, as conversion functions like
 `feed_to_json` and `feed_of_json` are generated automatically by the PPX.
