@@ -446,12 +446,12 @@ for the Fetch API in OCaml.
 
 > [!NOTE]
 > 
-> "Bindings" refer to the interfaces that allow OCaml code to interact with
-> JavaScript APIs. They act as a bridge, enabling you to call JavaScript
-> functions and use JavaScript objects directly within your OCaml code, as if
-> they were native OCaml functions or types. You can write bindings manually
-> yourself, or import bindings from existing libraries, like we are doing here
-> with `melange-fetch`.
+> [Bindings](https://melange.re/v4.0.0/communicate-with-javascript.html) refer
+> to the interfaces that allow OCaml code to interact with JavaScript APIs. They
+> act as a bridge, enabling you to call JavaScript functions and use JavaScript
+> objects directly within your OCaml code, as if they were native OCaml
+> functions or types. You can write bindings manually yourself, or import
+> bindings from existing libraries, like we are doing here with `melange-fetch`.
 
 Run the following command in your terminal:
 
