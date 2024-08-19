@@ -593,22 +593,6 @@ component to process the result and render the feed:
           |> Array.map((entry: Feed.entry) =>
                 <li key={string_of_float(entry.updated)}>
                   <h2> {React.string(entry.title)} </h2>
-                  {switch (entry.content) {
-                  | None => React.null
-                  | Some(content) =>
-                    <p dangerouslySetInnerHTML={"__html": content} />
-                  }}
-                  <ul>
-                    {entry.links
-                    |> Array.map((link: Feed.link) =>
-                          <li>
-                            <a href={link.href}>
-                              {React.string(link.title)}
-                            </a>
-                          </li>
-                        )
-                    |> React.array}
-                  </ul>
                 </li>
               )
           |> React.array}
@@ -639,7 +623,8 @@ Can you try updating the rendering function to also show `entry.content` and
 
 > [!TIP]
 >
-> You might need to use `switch` and `Array.map` again for that.
+> You might need to use `switch` and the `dangerouslySetInnerHTML` prop for
+> `entry.content`, and `Array.map` for `entry.links`.
 
 
 ## Project layout
