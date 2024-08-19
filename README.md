@@ -590,8 +590,8 @@ component to process the result and render the feed:
         <h1> {React.string("GitHub Feed")} </h1>
         <ul>
           {feed.entries
-          |> Array.map(entry =>
-                <li key={string_of_float(entry.Feed.updated)}>
+          |> Array.map((entry: Feed.entry) =>
+                <li key={string_of_float(entry.updated)}>
                   <h2> {React.string(entry.title)} </h2>
                   {switch (entry.content) {
                   | None => React.null
