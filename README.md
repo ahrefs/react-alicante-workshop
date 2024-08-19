@@ -485,24 +485,26 @@ how you can use `melange-fetch` to make a request inside an effect, you can add
 this for now in the `App.re` component:
 
 ```reason
+module P = Js.Promise;
 React.useEffect0(() => {
-  Js.Promise.(
-    Fetch.fetch("https://gh-feed.vercel.app/api?user=jchavarri&page=1")
-    |> then_(Fetch.Response.text)
-    |> then_(text => Js.log(text) |> resolve)
-  ) |> ignore;
+  Fetch.fetch("https://gh-feed.vercel.app/api?user=jchavarri&page=1")
+  |> P.then_(Fetch.Response.text)
+  |> P.then_(text => Js.log(text) |> P.resolve)
+  |> ignore;
   None;
 });
 ```
 
 This snippet does the following:
+- **`module P = Js.Promise`**: Adds a module alias `P` to the Melange API module
+  [Js.Promise](https://melange.re/v4.0.0/api/ml/melange/Js/Promise/index.html).
 - **`React.useEffect0`**: Runs the fetch operation when the component mounts.
   The `useEffect0` function is a binding defined [in
   reason-react](https://reasonml.github.io/reason-react/docs/en/useeffect-hook#docsNav).
 - **`Fetch.fetch(url)`**: Initiates a GET request to the specified URL.
-- **`then_(Fetch.Response.text)`**: Converts the response into a text string.
-- **`then_(text => Js.log(text) |> resolve)`**: Logs the response text to the
-  console.
+- **`P.then_(Fetch.Response.text)`**: Converts the response into a text string.
+- **`P.then_(text => Js.log(text) |> P.resolve)`**: Logs the response text to
+  the console.
 - **`ignore`**:
   [Discards](https://reasonml.github.io/api/Stdlib.html#1_Unitoperations) the
   final promise result since we're only interested in side effects.
