@@ -433,6 +433,200 @@ to confirm that our debugging object is still displayed:
 
 ![Console log - printing some runtime values](README-imgs/console-log.png)
 
+## Step 6: Fetching data
+
+In this step, we'll focus on fetching data from the GitHub feed API using the
+`melange-fetch` library. This will set the foundation for processing and
+displaying the data in the next step.
+
+### 6.1: Installing `melange-fetch`
+
+First, we need to install the `melange-fetch` package, which provides bindings
+for the Fetch API in OCaml.
+
+> [!NOTE]
+> 
+> [Bindings](https://melange.re/v4.0.0/communicate-with-javascript.html) refer
+> to the interfaces that allow OCaml code to interact with JavaScript APIs. They
+> act as a bridge, enabling you to call JavaScript functions and use JavaScript
+> objects directly within your OCaml code, as if they were native OCaml
+> functions or types. You can write bindings manually yourself, or import
+> bindings from existing libraries, like we are doing here with `melange-fetch`.
+
+Run the following command in your terminal:
+
+```sh
+opam install melange-fetch
+```
+
+Remember to add `"melange-fetch"` to the `depends` field in your `.opam` file as
+well:
+
+```
+depends: [
+  ...
+  "melange-fetch"
+]
+```
+
+### 6.2: Adding `melange-fetch` to Dune
+
+Next, we need to tell Dune to include this library in our project. Open the
+`src/dune` file and add `melange-fetch` to the `libraries` field:
+
+```dune
+(libraries melange-fetch melange-json reason-react)
+```
+
+### 6.3: Fetching data from the API
+
+Now that we have everything set up, let's fetch data from the feed API. Here’s
+how you can use `melange-fetch` to make a request inside an effect, you can add
+this for now in the `App.re` component:
+
+```reason
+module P = Js.Promise;
+React.useEffect0(() => {
+  Fetch.fetch("https://gh-feed.vercel.app/api?user=jchavarri&page=1")
+  |> P.then_(Fetch.Response.text)
+  |> P.then_(text => Js.log(text) |> P.resolve)
+  |> ignore;
+  None;
+});
+```
+
+This snippet does the following:
+- **`module P = Js.Promise`**: Adds a module alias `P` to the Melange API module
+  [Js.Promise](https://melange.re/v4.0.0/api/ml/melange/Js/Promise/index.html).
+- **`React.useEffect0`**: Runs the fetch operation when the component mounts.
+  The `useEffect0` function is a binding defined [in
+  reason-react](https://reasonml.github.io/reason-react/docs/en/useeffect-hook#docsNav).
+- **`Fetch.fetch(url)`**: Initiates a GET request to the specified URL.
+- **`P.then_(Fetch.Response.text)`**: Converts the response into a text string.
+- **`P.then_(text => Js.log(text) |> P.resolve)`**: Logs the response text to
+  the console.
+- **`ignore`**:
+  [Discards](https://reasonml.github.io/api/Stdlib.html#1_Unitoperations) the
+  final promise result since we're only interested in side effects.
+
+> [!TIP]
+> 
+> Chaining promises with `then_` allows you to handle asynchronous code in a
+> structured way, similar to how you'd do it in JavaScript. We will see later on
+> a different way to handle asynchronous code, that is closer to `async/await`.
+
+### 6.4: Step 6 completion check
+
+Run your application to ensure that the data is being fetched correctly. Check
+your console to see the printed data. If everything is working, you should see
+the raw JSON data in your console.
+
+If everything works well, now it's a good time to clean up some of the previous
+prototyping code that we are not using anymore: `Feed.data`, `Feed.demoFeed` and
+the `Js.log(Feed.feed_of_json);` line at the end of `App.re`.
+
+## Step 7: Displaying data
+
+Now that we have successfully fetched the data, let’s move on to decoding it and
+displaying it in the UI.
+
+### 7.1: Decoding the fetched data
+
+We need to decode the raw data using our `feed_of_json` function. First of all,
+we are going to define a new variant type to specify the state of the UI:
+
+```reason
+type loadingStatus =
+  | Loading
+  | Loaded(result(Feed.feed, string));
+```
+
+This type uses a few things:
+- [Variant types](https://reasonml.github.io/docs/en/variant), similar to enums
+- Result type, which is a predefined variant with two options: `Ok` and `Error`
+- In this case, the "Ok" part is the `feed` type we defined in the previous
+  step, and the error type is just a string
+
+Now we can adapt the effect in `App.re` to use the new type. We will also be
+adding a `useState` hook to store the data loading state:
+
+
+```reason
+/* inside the App component `make` function */
+    let (data, setData) = React.useState(() => Loading);
+    React.useEffect0(() => {
+      Js.Promise.(
+        Fetch.fetch("https://gh-feed.vercel.app/api?user=jchavarri&page=1")
+        |> then_(Fetch.Response.text)
+        |> then_(text =>
+             {
+               let data =
+                 try(Ok(text |> Json.parseOrRaise |> Feed.feed_of_json)) {
+                 | Json.Decode.DecodeError(msg) =>
+                   Js.Console.error(msg);
+                   Error("Failed to decode: " ++ msg);
+                 };
+               setData(_ => Loaded(data));
+             }
+             |> resolve
+           )
+      )
+      |> ignore;
+      None;
+    });
+```
+
+### 7.2: Rendering the data in the UI
+
+With the data decoded, it’s time to display it in the UI. Update your React
+component to process the result and render the feed:
+
+```reason
+  {switch (data) {
+    | Loading => <div> {React.string("Loading...")} </div>
+    | Loaded(Error(msg)) => <div> {React.string(msg)} </div>
+    | Loaded(Ok(feed)) =>
+      <div>
+        <h1> {React.string("GitHub Feed")} </h1>
+        <ul>
+          {feed.entries
+          |> Array.map((entry: Feed.entry) =>
+                <li key={string_of_float(entry.updated)}>
+                  <h2> {React.string(entry.title)} </h2>
+                </li>
+              )
+          |> React.array}
+        </ul>
+      </div>
+    }}
+```
+
+Note how we leverage pattern matching (`switch`) together with variants to map
+the data state directly to the UI.
+
+Also, unlike in JavaScript, plain strings cannot be used directly as React
+elements in ReasonReact; they need to be converted using `React.string`.
+
+Lastly, we use specific type annotations in `Array.map` (e.g., `Feed.link`) to
+assist the compiler in inferring the correct type within the callback. This
+isn’t always necessary, but it’s often required in mapping functions due to the
+way type inference and piping work in OCaml.
+
+### 7.3: Step 7 completion check
+
+Reload your application, and you should now see the GitHub feed displayed on the
+page. The data is fetched, decoded, and rendered dynamically. If everything
+works, the console should be free of errors, and the feed should be visible.
+
+Can you try updating the rendering function to also show `entry.content` and
+`entry.links`? 
+
+> [!TIP]
+>
+> You might need to use `switch` and the `dangerouslySetInnerHTML` prop for
+> `entry.content`, and `Array.map` for `entry.links`.
+
+
 ## Project layout
 
 The following is a high level view of your project and application. Many of
@@ -501,6 +695,7 @@ resource for learning Melange, OCaml, and Reason even if you're not using React
 - [Melange official site](https://melange.re)
 - [Melange playground](https://melange.re/v4.0.0/playground/) - Useful to share
   snippets or errors
+- [Reason React docs](https://reasonml.github.io/reason-react/)
 - [OCaml Discuss Forums](https://discuss.ocaml.org/)
 - [OCaml Discord Server](https://discord.gg/Qpzjmc4t)
 - [Reason Discord Server](https://discord.gg/jPEH58TU)
