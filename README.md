@@ -536,7 +536,7 @@ we are going to define a new variant type to specify the state of the UI:
 ```reason
 type loadingStatus =
   | Loading
-  | Loaded(Result.t(Feed.feed, string));
+  | Loaded(result(Feed.feed, string));
 ```
 
 This type uses a few things:
