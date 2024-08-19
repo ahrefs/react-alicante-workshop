@@ -459,8 +459,8 @@ Run the following command in your terminal:
 opam install melange-fetch
 ```
 
-Remember to add `"melange-fetch"` to the list of dependencies to the `depends`
-field of the `.opam` file as well:
+Remember to add `"melange-fetch"` to the `depends` field in your `.opam` file as
+well:
 
 ```
 depends: [
