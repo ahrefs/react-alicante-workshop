@@ -459,6 +459,16 @@ Run the following command in your terminal:
 opam install melange-fetch
 ```
 
+Remember to add `"melange-fetch"` to the list of dependencies to the `depends`
+field of the `.opam` file as well:
+
+```
+depends: [
+  ...
+  "melange-fetch"
+]
+```
+
 ### 6.2: Adding `melange-fetch` to Dune
 
 Next, we need to tell Dune to include this library in our project. Open the
