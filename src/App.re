@@ -1,11 +1,3 @@
-/* Externals allow to interact with existing JavaScript code or modules. In this
-   case, we want to "import" an image:
-   https://melange.re/v4.0.0/communicate-with-javascript.html#using-functions-from-other-javascript-modules
-   The code below will generate `import CamelFunJpg from "./img/camel-fun.jpg";`
-   so that Esbuild can process the asset later on.
-   */
-[@mel.module "./img/camel-fun.jpg"] external camelFun: string = "default";
-
 /*
  * In OCaml, a module is similar to a TypeScript or JavaScript module.
  * It's a way to group related functions, types, and components. Here, `App`
@@ -21,19 +13,59 @@
  * common to name the main function of a component `make` instead of the
  * component's name.
  */
+
+type loadingStatus =
+  | Loading
+  | Loaded(result(Feed.feed, string));
+
 module App = {
   [@react.component]
   let make = () => {
-    module P = Js.Promise;
+    let (data, setData) = React.useState(() => Loading);
     React.useEffect0(() => {
+      module P = Js.Promise;
       Fetch.fetch("https://gh-feed.vercel.app/api?user=jchavarri&page=1")
       |> P.then_(Fetch.Response.text)
-      |> P.then_(text => Js.log(text) |> P.resolve)
+      |> P.then_(text =>
+           {
+             let data =
+               try(Ok(text |> Json.parseOrRaise |> Feed.feed_of_json)) {
+               | Json.Decode.DecodeError(msg) =>
+                 Js.Console.error(msg);
+                 Error("Failed to decode: " ++ msg);
+               };
+             setData(_ => Loaded(data));
+           }
+           |> P.resolve
+         )
       |> ignore;
       None;
     });
 
-    <div> <Hello /> <img src=camelFun /> </div>;
+    <div>
+      {switch (data) {
+       | Loading => <div> {React.string("Loading...")} </div>
+       | Loaded(Error(msg)) => <div> {React.string(msg)} </div>
+       | Loaded(Ok(feed)) =>
+         <div>
+           <h1> {React.string("GitHub Feed")} </h1>
+           <ul>
+             {feed.entries
+              |> Array.map((entry: Feed.entry) =>
+                   <li key={entry.id}>
+                     <h2> {React.string(entry.title)} </h2>
+                     {switch (entry.content) {
+                      | None => React.null
+                      | Some(content) =>
+                        <p dangerouslySetInnerHTML={"__html": content} />
+                      }}
+                   </li>
+                 )
+              |> React.array}
+           </ul>
+         </div>
+       }}
+    </div>;
   };
 };
 
