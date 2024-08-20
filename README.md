@@ -629,6 +629,151 @@ Can you try updating the rendering function to also show `entry.content` and
 > You might need to use `switch` and the `dangerouslySetInnerHTML` prop for
 > `entry.content`, and `Array.map` for `entry.links`.
 
+## Step 8: Using input fields to get data for any user
+
+In this step, we'll enhance our app by letting users enter a GitHub username to
+fetch and display their activity feed.
+
+To do this, we will have to update our app in a few ways.
+
+First of all, we will add a couple more state hooks to store `username` and the
+`debounceTimeout`. For this, we will use `React.useState`, which we have used
+before.
+
+Then, we will add an input field to capture the GitHub username. We can use a
+label for clarity. We also have to ensure that the input value is bound to the
+`username` state:
+
+```reason
+<label htmlFor="username-input"> {React.string("Username:")} </label>
+<input
+  id="username-input"
+  value=username
+  onChange={event => {
+    setUsername(event->React.Event.Form.target##value);
+    setData(_ => Loading);
+  }}
+  placeholder="Enter GitHub username"
+/>
+```
+
+Finally, we have to modify our data fetching logic to get data for the current
+user. This will involve the following steps:
+
+- Remove the previous effect and move its content to a new function `fetchFeed`.
+  You'll need to modify the URL to dynamically pass the `username`, this can be
+  done by leveraging string concatenation operator `++` (see the [syntax
+  cheatsheet](https://reasonml.github.io/docs/en/syntax-cheatsheet)).
+- Create a new effect that has `username` as a dependency (hint: use
+  `React.useEffect1`)
+- Inside the effect, make sure to:
+    - clear the existing timeout `debounceTimeout` if it has a value set (its
+      value is `Some(_)`) using
+      [Js.Global.clearTimeout](https://melange.re/v4.0.0/api/re/melange/Js/Global/#val-clearTimeout)
+    - set a new timeout using
+      [Js.Global.setTimeout](https://melange.re/v4.0.0/api/re/melange/Js/Global/#val-setTimeout).
+      Let's set it to 500ms.
+    - store the new timeout id using `setDebounceTimeout` function from the
+      `useState` hook
+
+### Step 8 completion check
+
+After this step is completed, we should be able to type a valid username like
+`xavierleroy` and see their most recent activity on GitHub appearing in the
+feed.
+
+Don't worry about data validation or error handling for now, we will fix that in
+the next step.
+
+## Step 9: Validating data with abstract modules, handling edge cases and errors
+
+### 9.1: Validate usernames
+
+Right now, we can enter any kind of string in our input, but GitHub only allows
+usernames with specific rules:
+- Max length should be 39 characters
+- Can only contain alphanumeric characters and dashes `-`
+- Can't start or finish with dash `-`
+
+Let's add some logic to validate the username. As the `App.re` module is getting
+large already, let's create a new module `Username.re`. In this module, we will
+define the following:
+
+- `type t = string`
+- A function `make` that takes a `string` and returns a `result` value:
+```reason
+let make = (username: string) => {
+  let re = [%re "/^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/"];
+  Js.Re.test(~str=username, re) ? Ok(username) : Error();
+};
+```
+- A `toString` function that converts `Username.t` back to a string.
+
+To make sure we can't use any string as validated username incorrectly, we will
+make the type `t`
+[abstract](https://courses.cs.cornell.edu/cs3110/2021sp/textbook/modules/abstract_types.html),
+In order to do so, we will add an [interface
+file](https://reasonml.github.io/docs/en/module#interface-files). These files
+define how the module types will be visible from the outside.
+
+So let's create a new file `Username.rei` with this content:
+
+```reasonml
+type t;
+
+let make: string => result(t, unit);
+
+let toString: t => string;
+```
+Note how we are leaving `t` without a definition, this makes the type abstract.
+This way, every time we need to use a GitHub username in our app, we can use
+`Username.t` as a type, and this will guarantee that the string has gone through
+the validation before being used in the function.
+
+To use the new type, we will modify the existing `App` component:
+- Add a `validatedUsername` value that can be derived from existing `username`:
+```reasonml
+    let validatedUsername =
+      React.useMemo1(() => Username.make(username), [|username|]);
+```
+- Make sure that `fetchFeed` takes a value `Username.t` rather than a plain
+  string
+- Adapt the effect to depend on `validatedUsername`, not `username`
+- Modify the render function to pattern match on both `validatedUsername` and
+  `data` using a single `switch` statement.
+
+### 9.2: Handle edge cases and errors
+
+To improve the user experience, we'll add messages for the following cases:
+- when there are errors returned by the server
+- or when a valid user has an empty feed
+
+For this, we will have to modify `App` component in a couple of places.
+
+The `fetchFeed` function should check for the response status using
+`Fetch.Response.status`. If the status is 200, then proceed as before, but if
+it's something else, it should call `setData(_ => Loaded(Error("Error: Received
+status " ++ string_of_int(status))))`.
+
+> [!TIP]
+> 
+> You can use either `if` / `else` or a `switch` statement for this.
+
+The other change involves the rendering logic. We will have to modify the
+content of the `ul` element, so that instead of always iterating over the array
+of entries, we should use a `switch (feed.entries)` check. In case the array is
+empty, we can just render `React.string("This user feed is empty")`.
+
+With these two modifications, our app is slightly more user friendly.
+
+### Step 9 completion check
+
+To test these changes, we can type a username like `in` to see the empty feed
+message. Or we can type an invalid username like `invalid-` to see the invalid
+username message.
+
+Finally, we can type an inexistent user like `a---1` to see the invalid response
+from the server message (this user does not exist).
 
 ## Project layout
 
