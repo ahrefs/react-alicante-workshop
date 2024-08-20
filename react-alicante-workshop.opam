@@ -12,6 +12,7 @@ bug-reports:
 depends: [
   "dune"
   "melange" {>= "4.0.1-52"}
+  "melange-fetch"
   "melange-json"
   "ocaml"
   "opam-check-npm-deps"

@@ -24,6 +24,15 @@
 module App = {
   [@react.component]
   let make = () => {
+    module P = Js.Promise;
+    React.useEffect0(() => {
+      Fetch.fetch("https://gh-feed.vercel.app/api?user=jchavarri&page=1")
+      |> P.then_(Fetch.Response.text)
+      |> P.then_(text => Js.log(text) |> P.resolve)
+      |> ignore;
+      None;
+    });
+
     <div> <Hello /> <img src=camelFun /> </div>;
   };
 };
@@ -40,5 +49,3 @@ ReactDOM.querySelector("#root")
         "Failed to start React: couldn't find the #root element",
       )
   );
-
-Js.log(Feed.demoFeed);
