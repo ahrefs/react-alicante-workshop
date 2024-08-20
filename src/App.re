@@ -1,3 +1,11 @@
+/* Externals allow to interact with existing JavaScript code or modules. In this
+   case, we want to "import" an image:
+   https://melange.re/v4.0.0/communicate-with-javascript.html#using-functions-from-other-javascript-modules
+   The code below will generate `import CamelFunJpg from "./img/camel-fun.jpg";`
+   so that Esbuild can process the asset later on.
+   */
+[@mel.module "./img/camel-fun.jpg"] external camelFun: string = "default";
+
 /*
  * In OCaml, a module is similar to a TypeScript or JavaScript module.
  * It's a way to group related functions, types, and components. Here, `App`
@@ -17,24 +25,25 @@ module App = {
   [@react.component]
   let make = () => {
     <>
-      <div className="h-[15%]" />
-      <div
-        className="flex flex-col items-center justify-center rounded-3xl bg-gradient-to-b from-[#24273a] to-[#181926] p-6 shadow outline outline-2 outline-[#f5bde6]">
-        <h1
-          className="mb-2 pb-1 bg-gradient-to-r from-[#f5bde6] to-[#c6a0f6] bg-clip-text text-7xl font-black text-transparent">
-          /*
-           * `React.string` is used in ReasonReact to convert plain strings into
-           * React text elements. This is necessary because in OCaml, you
-           * can't directly render strings in JSX. It's similar to how text
-           * content is treated in JSX/TSX in the JavaScript/TypeScript world,
-           * but with explicit conversion for better type safety and clarity in
-           * the OCaml ecosystem.
-           */
-           {React.string("Hello Alicante!")} </h1>
-        <h2
-          className="mb-3 border-b-2 bg-gradient-to-r from-[#ee99a0] to-[#f5a97f] bg-clip-text text-4xl  font-black text-transparent pb-1">
+      <div />
+      <div>
+        <h1>
+          {/*
+            * `React.string` is used in ReasonReact to convert plain strings into
+            * React text elements. This is necessary because in OCaml, you
+            * can't directly render strings in JSX. It's similar to how text
+            * content is treated in JSX/TSX in the JavaScript/TypeScript world,
+            * but with explicit conversion for better type safety and clarity in
+            * the OCaml ecosystem.
+            */
+           React.string(
+             "Hello Alicante!",
+           )}
+        </h1>
+        <h2>
           {React.string("Write maintainable React applications using OCaml")}
         </h2>
+        <img src=camelFun />
       </div>
     </>;
   };

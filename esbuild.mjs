@@ -34,6 +34,7 @@ const buildOptions = {
   minify: isProd,
   sourcemap: isProd,
   logLevel: "info",
+  loader: { '.jpg': 'dataurl' },
   define: {
     NODE_ENV: JSON.stringify(nodeEnv)
   }

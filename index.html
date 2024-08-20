@@ -4,12 +4,130 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.tailwindcss.com"></script>
   <title>React Alicante Workshop</title>
+  <style>
+    body,
+    html {
+      height: 100%;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* General container styling */
+    #root {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      /* Center the div horizontally */
+    }
+
+    /* Header */
+    h1 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    /* GitHub Feed header */
+    h2 {
+      font-size: 20px;
+      margin-bottom: 15px;
+    }
+
+    /* User Info */
+    .d-flex.flex-items-baseline.py-4 {
+      display: flex;
+      align-items: center;
+    }
+
+    .avatar-user {
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    a {
+      color: #0366d6;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    /* Commit Box */
+    .Box {
+      background-color: #f9f9f9;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 15px;
+    }
+
+    /* Commit List */
+    .commits ul {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 10px;
+    }
+
+    .commits li {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      padding: 8px;
+      background-color: #f1f1f1;
+      /* Light background for commit items */
+      border-radius: 4px;
+      border: 1px solid #e1e4e8;
+      /* Light border */
+    }
+
+    /* Contributors Section */
+    .p-3.border-top {
+      padding: 1rem;
+      border-top: 1px solid #e1e4e8;
+    }
+
+    .h6 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #586069;
+    }
+
+    .mt-1.mb-3 {
+      margin-top: 0.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .list-style-none.d-flex.flex-wrap.mb-n2 {
+      list-style: none;
+      display: flex;
+      /* Ensure items are aligned horizontally */
+      flex-wrap: wrap;
+      /* Allow wrapping to the next line if necessary */
+      margin-left: -8px;
+      /* Adjust left margin for better alignment */
+      margin-bottom: -8px;
+      /* Adjust bottom margin to reduce extra space */
+    }
+
+    .list-style-none.d-flex.flex-wrap.mb-n2 li {
+      margin-left: 8px;
+      /* Space between avatars horizontally */
+      margin-bottom: 8px;
+      /* Space between avatars vertically (if they wrap) */
+    }
+
+    .avatar.circle {
+      border-radius: 50%;
+      /* Ensure avatars are circular */
+      display: block;
+      /* Make the avatar a block-level element */
+    }
+  </style>
 </head>
 
 <body>
-  <div id="root" class="flex h-screen w-screen flex-col items-center bg-gradient-to-b from-[#24273a] to-[#181926]" />
+  <div id="root"></div>
   <script type="module" src="App.mjs"></script>
   <script>new EventSource('/esbuild').addEventListener('change', () => location.reload())</script>
 </body>
