@@ -22,9 +22,12 @@ module App = {
   [@react.component]
   let make = () => {
     let (data, setData) = React.useState(() => Loading);
-    React.useEffect0(() => {
+    let (username, setUsername) = React.useState(() => "jchavarri");
+    let (debounceTimeout, setDebounceTimeout) = React.useState(() => None);
+
+    let fetchFeed = user => {
       module P = Js.Promise;
-      Fetch.fetch("https://gh-feed.vercel.app/api?user=jchavarri&page=1")
+      Fetch.fetch("https://gh-feed.vercel.app/api?user=" ++ user ++ "&page=1")
       |> P.then_(Fetch.Response.text)
       |> P.then_(text =>
            {
@@ -39,10 +42,40 @@ module App = {
            |> P.resolve
          )
       |> ignore;
-      None;
-    });
+    };
+
+    React.useEffect1(
+      () => {
+        /* Clear the previous timeout if it exists */
+        switch (debounceTimeout) {
+        | None => ()
+        | Some(timeout) => Js.Global.clearTimeout(timeout)
+        };
+
+        /* Set a new timeout */
+        let newTimeout =
+          Js.Global.setTimeout(~f=() => fetchFeed(username), 500);
+
+        /* Store the new timeout ID */
+        setDebounceTimeout(_ => Some(newTimeout));
+        None;
+      },
+      [|username|],
+    );
 
     <div>
+      <div>
+        <label htmlFor="username-input"> {React.string("Username:")} </label>
+        <input
+          id="username-input"
+          value=username
+          onChange={event => {
+            setUsername(event->React.Event.Form.target##value);
+            setData(_ => Loading);
+          }}
+          placeholder="Enter GitHub username"
+        />
+      </div>
       {switch (data) {
        | Loading => <div> {React.string("Loading...")} </div>
        | Loaded(Error(msg)) => <div> {React.string(msg)} </div>
