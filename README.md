@@ -267,6 +267,7 @@ module Decode = {
   let entry = json =>
     Json.Decode.{
       content: json |> optional(field("content", string)),
+      id: json |> optional(field("id", string)),
       links: json |> field("links", array(link)),
       title: json |> field("title", string),
       updated: json |> field("updated", float),
@@ -280,6 +281,7 @@ let data = {| {
   "entries": [
     {
       "content": "<div>Hello</div>",
+      "id": "abcd1234",
       "links": [
         {
           "title": "",
@@ -592,7 +594,7 @@ component to process the result and render the feed:
         <ul>
           {feed.entries
           |> Array.map((entry: Feed.entry) =>
-                <li key={string_of_float(entry.updated)}>
+                <li key={entry.id}>
                   <h2> {React.string(entry.title)} </h2>
                 </li>
               )
