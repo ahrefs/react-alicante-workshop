@@ -199,6 +199,7 @@ This endpoint doesn’t require API keys and works as follows:
   For example: `https://gh-feed.vercel.app/api?user=jchavarri&page=1`
 - It returns an object (let's call it `feed`) with a key `entries`, which is an
   array of feed entries. Each entry has the following structure:
+  - **id**: The id of the entry (`string`).
   - **content**: The content of the entry, contains HTML as a string (optional).
   - **links**: An array of associated links, each with:
     - **href**: The URL the link points to (`string`).
