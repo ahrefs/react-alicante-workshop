@@ -1,7 +1,7 @@
 (library
  (name app)
  (modes melange)
- (libraries reason-react)
+ (libraries melange-json reason-react)
  (melange.runtime_deps img/camel-fun.jpg)
  (preprocess
   (pps melange.ppx reason-react-ppx)))

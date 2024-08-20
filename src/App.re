@@ -40,3 +40,5 @@ ReactDOM.querySelector("#root")
         "Failed to start React: couldn't find the #root element",
       )
   );
+
+Js.log(Feed.demoFeed);
