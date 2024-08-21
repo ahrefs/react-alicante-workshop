@@ -23,7 +23,6 @@ module App = {
   let make = () => {
     let (data, setData) = React.useState(() => Loading);
     let (username, setUsername) = React.useState(() => "jchavarri");
-    let (debounceTimeout, setDebounceTimeout) = React.useState(() => None);
 
     let fetchFeed = user => {
       module P = Js.Promise;
@@ -44,24 +43,10 @@ module App = {
       |> ignore;
     };
 
-    React.useEffect1(
-      () => {
-        /* Clear the previous timeout if it exists */
-        switch (debounceTimeout) {
-        | None => ()
-        | Some(timeout) => Js.Global.clearTimeout(timeout)
-        };
-
-        /* Set a new timeout */
-        let newTimeout =
-          Js.Global.setTimeout(~f=() => fetchFeed(username), 500);
-
-        /* Store the new timeout ID */
-        setDebounceTimeout(_ => Some(newTimeout));
-        None;
-      },
-      [|username|],
-    );
+    React.useEffect0(() => {
+      fetchFeed(username);
+      None;
+    });
 
     <div>
       <div>
@@ -70,9 +55,14 @@ module App = {
           id="username-input"
           value=username
           onChange={event => {
-            setUsername(event->React.Event.Form.target##value);
-            setData(_ => Loading);
+            setUsername(event->React.Event.Form.target##value)
           }}
+          onKeyDown={event =>
+            if (React.Event.Keyboard.keyCode(event) == 13) {
+              setData(_ => Loading);
+              fetchFeed(username);
+            }
+          }
           placeholder="Enter GitHub username"
         />
       </div>
