@@ -699,7 +699,7 @@ Let's add some logic to validate the username. As the `App.re` module is getting
 large already, let's create a new module `Username.re`. In this module, we will
 define the following:
 
-- `type t = string`
+- `type t = string;`
 - A function `make` that takes a `string` and returns a `result` value:
 ```reason
 let make = (username: string) => {
