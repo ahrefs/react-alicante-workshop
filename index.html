@@ -6,6 +6,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>React Alicante Workshop</title>
   <style>
+    /*
+      1. Use a more-intuitive box-sizing model.
+    */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    /*
+      2. Remove default margin
+    */
+    * {
+      margin: 0;
+    }
+
+    /*
+      Typographic tweaks!
+      3. Add accessible line-height
+      4. Improve text rendering
+    */
+    body {
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /*
+      5. Improve media defaults
+    */
+    img,
+    picture,
+    video,
+    canvas,
+    svg {
+      display: block;
+      max-width: 100%;
+    }
+
+    /*
+      6. Remove built-in form typography styles
+    */
+    input,
+    button,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    /*
+      7. Avoid text overflows
+    */
+    p,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      overflow-wrap: break-word;
+    }
+
     /* General container styling */
     #root {
       font-family: Arial, sans-serif;
@@ -108,19 +169,127 @@
       /* Space between avatars vertically (if they wrap) */
     }
 
-    .avatar.circle {
-      border-radius: 50%;
-      /* Ensure avatars are circular */
-      display: block;
-      /* Make the avatar a block-level element */
+    #error-dialog {
+      font-family: sans-serif;
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background-color: white;
+      padding: 15px;
+      opacity: 0.9;
+      text-wrap: wrap;
+      overflow: scroll;
+    }
+
+    .text-red {
+      color: red;
+    }
+
+    pre {
+      text-wrap: wrap;
+    }
+
+    pre.nowrap {
+      text-wrap: nowrap;
+    }
+
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 
 <body>
+  <div id="error-dialog" class="hidden">
+    <h1 id="error-title" class="text-red"></h1>
+    <h3>
+      <pre id="error-message"></pre>
+    </h3>
+    <p>
+    <pre id="error-body"></pre>
+    </p>
+    <h4 class="-mb-20">This error occurred at:</h4>
+    <pre id="error-component-stack" class="nowrap"></pre>
+    <h4 class="mb-0">Call stack:</h4>
+    <pre id="error-stack" class="nowrap"></pre>
+    <div id="error-cause">
+      <h4 class="mb-0">Caused by:</h4>
+      <pre id="error-cause-message"></pre>
+      <pre id="error-cause-stack" class="nowrap"></pre>
+    </div>
+    <button id="error-close" class="mb-10" onclick="document.getElementById('error-dialog').classList.add('hidden')">
+      Close
+    </button>
+    <h3 id="error-not-dismissible">This error is not dismissible.</h3>
+  </div>
   <div id="root"></div>
   <script type="module" src="App.mjs"></script>
   <script>new EventSource('/esbuild').addEventListener('change', () => location.reload())</script>
+  <script>
+    function __global__reportError({ title, error, dismissable }) {
+      const errorDialog = document.getElementById("error-dialog");
+      const errorTitle = document.getElementById("error-title");
+      const errorMessage = document.getElementById("error-message");
+      const errorBody = document.getElementById("error-body");
+      const errorStack = document.getElementById("error-stack");
+      const errorClose = document.getElementById("error-close");
+      const errorCause = document.getElementById("error-cause");
+      const errorCauseMessage = document.getElementById("error-cause-message");
+      const errorCauseStack = document.getElementById("error-cause-stack");
+      const errorNotDismissible = document.getElementById("error-not-dismissible");
+
+      // Set the title
+      errorTitle.innerText = title;
+
+      // Display error message and body
+      const [heading, body] = error.message.split(/\n(.*)/s);
+      errorMessage.innerText = heading;
+      if (body) {
+        errorBody.innerText = body;
+      } else {
+        errorBody.innerText = '';
+      }
+
+      // Display the call stack
+      // Since we already displayed the message, strip it, and the first Error: line.
+      errorStack.innerText = error.stack.replace(error.message, '').split(/\n(.*)/s)[1];
+
+      // Display the cause, if available
+      if (error.cause && error.cause !== undefined) {
+        errorCauseMessage.innerText = JSON.stringify(error.cause, null, 2);
+        errorCause.classList.remove('hidden');
+      } else {
+        errorCause.classList.add('hidden');
+      }
+      // Display the close button, if dismissible
+      if (dismissable) {
+        errorNotDismissible.classList.add('hidden');
+        errorClose.classList.remove("hidden");
+      } else {
+        errorNotDismissible.classList.remove('hidden');
+        errorClose.classList.add("hidden");
+      }
+
+      // Show the dialog
+      errorDialog.classList.remove("hidden");
+    }
+
+    function __global__reportUncaughtError(message, error) {
+      __global__reportError({ title: "Uncaught Error", error, dismissable: true });
+    }
+
+    window.onerror = function (message, source, lineno, colno, error) {
+      console.error('Global Error:', message, source, lineno, colno, error);
+      __global__reportUncaughtError(message, error);
+    };
+
+    window.onunhandledrejection = function (event) {
+      console.error('Unhandled Promise Rejection:', event.reason);
+      __global__reportUncaughtError('Unhandled Promise Rejection', event.reason);
+    };
+  </script>
 </body>
 
 </html>
