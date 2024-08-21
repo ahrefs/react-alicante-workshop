@@ -757,7 +757,7 @@ status " ++ string_of_int(status))))`.
 
 > [!TIP]
 > 
-> You can use either `if` / `else` or a `switch` statement for this.
+> You can use either `if` / `else` or a `switch` expression for this.
 
 The other change involves the rendering logic. We will have to modify the
 content of the `ul` element, so that instead of always iterating over the array
