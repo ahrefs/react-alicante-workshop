@@ -772,7 +772,7 @@ To test these changes, we can type a username like `in` to see the empty feed
 message. Or we can type an invalid username like `invalid-` to see the invalid
 username message.
 
-Finally, we can type an inexistent user like `a---1` to see the invalid response
+Finally, we can type an nonexistent user like `a---1` to see the invalid response
 from the server message (this user does not exist).
 
 ## Project layout
