@@ -1,0 +1,24 @@
+.container {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.container label {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.container input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    width: 250px;
+}
+
+.container input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}

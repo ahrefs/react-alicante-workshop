@@ -2,5 +2,6 @@
  (name app)
  (modes melange)
  (libraries melange-fetch melange-json reason-react)
+ (melange.runtime_deps UsernameInput.module.css)
  (preprocess
   (pps melange.ppx melange-json.ppx reason-react-ppx)))
