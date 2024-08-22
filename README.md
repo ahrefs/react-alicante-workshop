@@ -655,13 +655,13 @@ state:
     onChange={event => {
       setUsername(event->React.Event.Form.target##value)
     }}
-    onKeyDown={event =>
+    onKeyDown={event => {
       let enterKey = 13;
       if (React.Event.Keyboard.keyCode(event) == enterKey) {
         setData(_ => Loading);
         fetchFeed(username);
-      }
-    }
+      };
+    }}
     placeholder="Enter GitHub username"
   />
 </div>
@@ -768,10 +768,10 @@ After this, we will replace the two state hooks that were using for `data` and
     React.useState(() => {username: "jchavarri", step: Idle});
 ```
 
-Let's modify `fetchFeed` to take a value of type `Username.t` rather than
-`string`, so we make sure there are no requests being done with invalid
-usernames. This essentially consists on replaing `username` with
-`Username.toString(username)`, in order to convert back to string when building
+Let's modify `fetchFeed` to accept a value of type `Username.t` rather than
+`string`. This ensures that no requests are made with invalid usernames.
+Essentially, this involves replacing `username` with
+`Username.toString(username)` to convert it back to a string when constructing
 the URL.
 
 Now, let's start thinking which parts of our component will modify the state:
@@ -818,8 +818,8 @@ To continue, we have to adapt the effect to check the username is valid:
   });
 ```
 
-Finally, we can modify the `switch` in the JSX code to use the new state, so
-instead of checking `data` we check for `state.step`:
+We can modify the `switch` in the JSX code to use the new state, so instead of
+checking `data` we check for `state.step`:
 
 ```reasonml
   {switch (state.step) {
@@ -835,6 +835,9 @@ instead of checking `data` we check for `state.step`:
     | Loaded(Ok(feed)) => ...
   }}
 ```
+
+Finally, we just need to change the `input`'s value prop from `value=username`
+to `value={state.username}`.
 
 ### 9.2: Handle edge cases and errors
 
