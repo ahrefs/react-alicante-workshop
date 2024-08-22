@@ -629,6 +629,277 @@ Can you try updating the rendering function to also show `entry.content` and
 > You might need to use `switch` and the `dangerouslySetInnerHTML` prop for
 > `entry.content`, and `Array.map` for `entry.links`.
 
+## Step 8: Using input fields to get data for any user
+
+In this step, we'll enhance our app by letting users enter a GitHub username to
+fetch and display their activity feed.
+
+To achieve this, we'll need to make a few updates to our app: add an input for
+the username, store the username, make the request to get the user's feed and
+make sure the UI gets updated.
+
+Let's start: we will add a new state hook to store the `username`. We can use
+`React.useState`, which we have already seen before.
+
+Then, we will add an input field to capture the GitHub username. Let's use the
+`onKeyDown` event to listen for the `Enter` key press, and add a label for
+clarity. We also have to ensure that the input value is bound to the `username`
+state:
+
+```reason
+<div>
+  <label htmlFor="username-input"> {React.string("Username:")} </label>
+  <input
+    id="username-input"
+    value=username
+    onChange={event => {
+      setUsername(event->React.Event.Form.target##value)
+    }}
+    onKeyDown={event => {
+      let enterKey = 13;
+      if (React.Event.Keyboard.keyCode(event) == enterKey) {
+        setData(_ => Loading);
+        fetchFeed(username);
+      };
+    }}
+    placeholder="Enter GitHub username"
+  />
+</div>
+```
+
+Finally, we have to modify our data fetching logic to get data for the current
+user. This will involve the following steps:
+
+- Remove the previous effect and move its content to a new function `fetchFeed`,
+  which will take a `username` of type `string` and perform the network request
+  to get data for that user. You'll need to dynamically insert the `username`
+  into the URL using the string concatenation operator `++` (see the [syntax
+  cheatsheet](https://reasonml.github.io/docs/en/syntax-cheatsheet)).
+- To get the initial data when the component first mounts, create a new effect
+  that runs at initialization (`useEffect0`) and calls `fetchFeed(username)`:
+```reasonml
+React.useEffect0(() => {
+  fetchFeed(username);
+  None;
+});
+```
+
+### Step 8 completion check
+
+After this step is completed, we should be able to type a valid username like
+`xavierleroy` and see their most recent activity on GitHub appearing in the
+feed.
+
+Don't worry about data validation or error handling for now, we will fix that in
+the next step.
+
+## Step 9: Validating data with abstract modules, handling edge cases and errors
+
+### 9.1: Validate usernames
+
+Right now, we can enter any kind of string in our input, but GitHub only allows
+usernames with specific rules:
+- Max length should be 39 characters
+- Can only contain alphanumeric characters and dashes `-`
+- Can't start or finish with dash `-`
+
+Let's add some logic to validate the username. As the `App.re` module is getting
+large already, let's create a new module `Username.re`. In this module, we will
+define the following:
+
+- `type t = string;`
+- A function `make` that takes a `string` and returns a `result` value:
+```reason
+let make = (username: string) => {
+  let re = [%re "/^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/"];
+  Js.Re.test(~str=username, re) ? Ok(username) : Error();
+};
+```
+- A `toString` function that converts `Username.t` back to a string.
+
+To make sure we can't use any string as validated username incorrectly, we will
+make the type `t`
+[abstract](https://courses.cs.cornell.edu/cs3110/2021sp/textbook/modules/abstract_types.html),
+In order to do so, we will add an [interface
+file](https://reasonml.github.io/docs/en/module#interface-files). These files
+define how the module types will be visible from the outside.
+
+So let's create a new file `Username.rei` with this content:
+
+```reasonml
+type t;
+
+let make: string => result(t, unit);
+
+let toString: t => string;
+```
+Note how we are leaving `t` without a definition, this makes the type abstract.
+This way, every time we need to use a GitHub username in our app, we can use
+`Username.t` as a type, and this will guarantee that the string has gone through
+the validation before being used in the function.
+
+To use the new type, we will modify the existing `App` component.
+
+First of all, we will replace `loadingStatus` with another type that reflects
+all the potential states that our component can be in. We need to store the
+username as we did before, and we also want to track all potential errors, so we
+will define the `state` as a record, with two fields `username` and `step`. The
+latter will define the steps of our UI component, as if it was modeled as a
+state machine:
+
+```reasonml
+type step =
+  | Idle /* There is no request going on, and no data to be shown. In this case, we will just show instructions to proceed with the request. */
+  | Loading /* A request is currently taking place to fetch the feed. */
+  | InvalidUsername /* The entered username is not a valid GitHub ID. */
+  | Loaded(result(Feed.feed, string)); /* A request has finished, its result is contained inside the variant value itself. */
+
+type state = {
+  username: string,
+  step,
+};
+```
+
+After this, we will replace the two state hooks that were using for `data` and
+`username` with a single one that handles this new state:
+
+```reasonml
+  let (state, setState) =
+    React.useState(() => {username: "jchavarri", step: Idle});
+```
+
+Let's modify `fetchFeed` to accept a value of type `Username.t` rather than
+`string`. This ensures that no requests are made with invalid usernames.
+Essentially, this involves replacing `username` with
+`Username.toString(username)` to convert it back to a string when constructing
+the URL.
+
+Now, let's start thinking which parts of our component will modify the state:
+- When we call `fetchFeed`, we have to set `step` to `Loading` at the beginning
+  of the function (`setState(state => {...state, step: Loading});`), and
+  `Loaded` when the request has finished (`setState(state => {...state, step:
+  Loaded(data)})`)
+- When the input value changes, we will go back to step `Idle`:
+```reasonml
+  onChange={event => {
+    setState(_ =>
+      {username: event->React.Event.Form.target##value, step: Idle}
+    )
+  }}
+```
+- We validate the username on `Enter` to ensure only valid requests are sent. If
+  the name is valid, we can just call `fetchFeed`, but if it's invalid, we will
+  set the step to `InvalidUsername`:
+```reasonml
+  onKeyDown={event => {
+    let enterKey = 13;
+    if (React.Event.Keyboard.keyCode(event) == enterKey) {
+      switch (Username.make(state.username)) {
+      | Ok(username) => fetchFeed(username)
+      | Error () =>
+        setState(state => {...state, step: InvalidUsername})
+      };
+    };
+  }}
+```
+
+To continue, we have to adapt the effect to check the username is valid:
+
+```reasonml
+  React.useEffect0(() => {
+    switch (Username.make(state.username)) {
+    | Ok(username) => fetchFeed(username)
+    | Error () =>
+      Js.Exn.raiseError(
+        "Initial username passed to React.useState is invalid",
+      )
+    };
+    None;
+  });
+```
+
+We can modify the `switch` in the JSX code to use the new state, so instead of
+checking `data` we check for `state.step`:
+
+```reasonml
+  {switch (state.step) {
+    | InvalidUsername => <div> {React.string("Invalid username")} </div>
+    | Idle =>
+      <div>
+        {React.string(
+          "Press the \"Enter\" key to confirm the username selection.",
+        )}
+      </div>
+    | Loading => <div> {React.string("Loading...")} </div>
+    | Loaded(Error(msg)) => <div> {React.string(msg)} </div>
+    | Loaded(Ok(feed)) => ...
+  }}
+```
+
+Finally, we just need to change the `input`'s value prop from `value=username`
+to `value={state.username}`.
+
+### 9.2: Handle edge cases and errors
+
+To improve the user experience, we'll add messages for the following cases:
+- when there are errors returned by the server
+- or when a valid user has an empty feed
+
+For this, we will have to modify `App` component in a couple of places.
+
+The `fetchFeed` function should check for the response status using
+`Fetch.Response.status`. If the status is 200, then proceed as before, but if
+it's something else, it should call `setData(_ => Loaded(Error("Error: Received
+status " ++ string_of_int(status))))`.
+
+The code should roughly look like this:
+
+```reasonml
+Fetch.fetch(...)
+|> P.then_(response => {
+      let status = Fetch.Response.status(response);
+      if (status === 200) {
+        /* If status is OK, proceed to parse the response */
+        response
+        |> Fetch.Response.text
+        |> P.then_(...);
+      } else {
+        /* Handle non-200 status */
+        setState(state =>
+          {
+            ...state,
+            step:
+              Loaded(
+                Error(
+                  "Error: Received status " ++ string_of_int(status),
+                ),
+              ),
+          }
+        )
+        |> P.resolve;
+      };
+    })
+|> ignore;
+```
+
+> [!TIP]
+> 
+> You can use either `if` / `else` or a `switch` expression for this.
+
+The other change involves the rendering logic. We will have to modify the
+content of the `ul` element, so that instead of always iterating over the array
+of entries, we should use a `switch (feed.entries)` check. In case the array is
+empty, we can just render `React.string("This user feed is empty")`.
+
+With these two modifications, our app is a bit more user friendly.
+
+### Step 9 completion check
+
+To test these changes, we can type a username like `in` to see the empty feed
+message. Testing with invalid usernames like `invalid-` will display an invalid
+username message, while nonexistent usernames like `a---1` will show a server
+error message (this user doesn't exist, but this case is currently not handled
+by the API server).
 
 ## Project layout
 
