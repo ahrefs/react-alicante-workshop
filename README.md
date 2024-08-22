@@ -901,6 +901,117 @@ username message, while nonexistent usernames like `a---1` will show a server
 error message (this user doesn't exist, but this case is currently not handled
 by the API server).
 
+## Step 10: Adding styles
+
+Melange allows us to build our apps using OCaml's powerful type system while
+leveraging existing JavaScript tooling.
+
+In this step, we'll enhance our app's UI by adding some styles to the username
+input field using [CSS
+modules](https://css-tricks.com/css-modules-part-1-need/). CSS modules are CSS
+files in which all class names are scoped locally by default.
+
+First, let's add a new file in `src` called `UsernameInput.module.css`:
+
+```css
+.container {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.container label {
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.container input {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+    width: 250px;
+}
+
+.container input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+```
+
+Next, we'll add a new `UsernameInput` module. This step is not strictly
+necessary, but it will help us encapsulate the input logic and styles, making
+our app more modular and maintainable. Let's create `src/UsernameInput.re` and
+move the input rendering code into it:
+
+```reason
+[@react.component]
+let make = (~username, ~onChange, ~onEnterKeyDown) =>
+  <div>
+    <label htmlFor="username-input"> {React.string("Username:")} </label>
+    <input
+      id="username-input"
+      value=username
+      onChange={event => onChange(event->React.Event.Form.target##value)}
+      onKeyDown={event => {
+        let enterKey = 13;
+        if (React.Event.Keyboard.keyCode(event) == enterKey) {
+          onEnterKeyDown();
+        };
+      }}
+      placeholder="Enter GitHub username"
+    />
+  </div>;
+```
+
+Now, we can replace the `input` element in `App` with the new `<UsernameInput
+... />` component. At this point, you should be able to apply the necessary
+changes to make the build pass! :)
+
+To import the `module.css` in our component, we'll define an [external
+binding](https://melange.re/v4.0.0/communicate-with-javascript.html#external-functions).
+In this case, we will annotate the external with the `mel.module` attribute,
+which allows to consume CSS [or JS
+files](https://melange.re/v4.0.0/communicate-with-javascript.html#using-functions-from-other-javascript-modules)
+from our OCaml files. After importing it, we can use it in the wrapping `<div>`:
+
+```reason
+[@mel.module "./UsernameInput.module.css"]
+external container: string = "container";
+
+[@react.component]
+let make = (~username, ~onChange, ~onEnterKeyDown) =>
+  <div className=container>
+    <label htmlFor="username-input"> {React.string("Username:")} </label>
+    <input .../>
+  </div>;
+```
+
+Finally, let's update the `src/dune` file to include the CSS file as a runtime
+dependency in the `app` library:
+
+```
+(library
+ (name app)
+ ...
+ (melange.runtime_deps UsernameInput.module.css)
+ ...)
+```
+
+Since Esbuild supports local CSS modules out of the box, just ensure that the
+`style` element is added to the `index.html` file:
+
+```html
+  <div id="root"></div>
+  <link href="App.css" rel="stylesheet">
+  <script type="module" src="App.mjs"></script>
+```
+### Step 10 completion check
+
+Voilà! When opening the browser, we should now see a more stylish input field,
+which will enhance the user experience.
+
 ## Project layout
 
 The following is a high level view of your project and application. Many of
