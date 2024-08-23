@@ -1019,6 +1019,255 @@ Voilà! Since we updated `index.html`, you'll need to restart the dev server. Go
 ahead and stop the `npm run serve` process, then start it again. When you open
 the browser, you should see a more stylish input field.
 
+### Step 11: Automatically fetch more data on scroll
+
+In this step, we'll implement "infinite scroll" to automatically fetch more data
+as the user scrolls to the bottom of the feed.
+
+#### 11.1: Add bindings to `IntersectionObserver`
+
+We need to create bindings for `IntersectionObserver` to detect when the user
+has scrolled to the bottom of the feed.
+
+In a new file `IntersectionObserver.re`, we will be using
+[mel.send](https://melange.re/v4.0.0/communicate-with-javascript.html#calling-an-object-method)
+and
+[mel.new](https://melange.re/v4.0.0/communicate-with-javascript.html#javascript-classes):
+
+```reason
+// IntersectionObserver bindings
+type entry = {
+  isIntersecting: bool,
+  target: Dom.element,
+};
+
+type observer;
+[@mel.send] external observe: (observer, Dom.element) => unit = "observe";
+[@mel.send] external unobserve: (observer, Dom.element) => unit = "unobserve";
+[@mel.send] external disconnect: observer => unit = "disconnect";
+
+[@mel.new] external make: (array(entry) => unit) => observer = "IntersectionObserver";
+```
+
+#### 11.2: Update state for pagination
+
+We’ll update our state to track the current page of the feed. We’ll also store
+the previous feed when in the `Loading` state.
+
+```reason
+type step =
+  | Idle /* There is no request going on, and no data to be shown. In this case, we will just show instructions to proceed with the request. */
+  | Loading(option(result(Feed.feed, string))) /* A request is currently taking place to fetch the feed. Stores the previously fetched feed. */
+  | InvalidUsername /* The entered username is not a valid GitHub ID. */
+  | Loaded(result(Feed.feed, string)); /* A request has finished, its result is contained inside the variant value itself. */
+
+type state = {
+  username: string,
+  step,
+  currentPage: int,
+};
+
+let (state, setState) =
+  React.useState(() => {username: "jchavarri", step: Idle, currentPage: 1});
+```
+
+#### 11.3: Add helper functions `mergeFeeds` and `renderFeed`
+
+We are going to be needing these two functions, both can be placed outside the
+`make` function of `App.re`.
+
+The first one takes the old feed and a new one, and proceeds to merge both:
+
+```reason
+let mergeFeeds = (oldFeed: Feed.feed, newFeed: Feed.feed): Feed.feed => {
+  let combinedEntries = Array.concat([oldFeed.entries, newFeed.entries]);
+  {entries: combinedEntries};
+};
+```
+
+The second one is just taking the feed render code and moving it to a separate
+function so we can reuse it:
+
+```reason
+let renderFeed = (feed: Feed.feed) =>
+  <div>
+    <h1> {React.string("GitHub Feed")} </h1>
+    <ul>
+      {switch (feed.entries) {
+       | [||] => React.string("This user feed is empty")
+       | entries =>
+         entries
+         |> Array.map((entry: Feed.entry) =>
+              <li key={entry.id}>
+                <h2> {React.string(entry.title)} </h2>
+                {switch (entry.content) {
+                 | None => React.null
+                 | Some(content) =>
+                   <p dangerouslySetInnerHTML={"__html": content} />
+                 }}
+              </li>
+            )
+         |> React.array
+       }}
+    </ul>
+  </div>;
+```
+
+#### 11.4: Modify `fetchFeed` to support pagination
+
+Update `fetchFeed` to accept a `page` parameter and include it in the API
+request. We’ll use [labeled
+arguments](https://reasonml.github.io/docs/en/function#named-arguments) to avoid
+confusion when calling this function:
+
+```reason
+let fetchFeed = (~username, ~page) => {
+  setState(state =>
+    {
+      ...state,
+      step:
+        switch (state.step) {
+        | Loaded(r)
+        | Loading(Some(r)) => Loading(Some(r))
+        | Loading(None)
+        | Idle
+        | InvalidUsername => Loading(None)
+        },
+    }
+  );
+  module P = Js.Promise;
+  Fetch.fetch(
+    "https://gh-feed.vercel.app/api?user="
+    ++ Username.toString(username)
+    ++ "&page="
+    ++ string_of_int(page),
+  )
+  |> P.then_(response => {
+        let status = Fetch.Response.status(response);
+        if (status === 200) {
+          /* If status is OK, proceed to parse the response */
+          response
+          |> Fetch.Response.text
+          |> P.then_(text =>
+              {
+                let data =
+                  try(Ok(text |> Json.parseOrRaise |> Feed.feed_of_json)) {
+                  | Json.Decode.DecodeError(msg) =>
+                    Js.Console.error(msg);
+                    Error("Failed to decode: " ++ msg);
+                  };
+
+                switch (data) {
+                | Error(_) =>
+                  setState(state => {...state, step: Loaded(data)})
+                | Ok(data) =>
+                  setState(state => {
+                    let updatedFeed =
+                      switch (state.step) {
+                      | Loaded(Ok(feed))
+                      | Loading(Some(Ok(feed))) =>
+                        mergeFeeds(feed, data)
+                      | _ => data
+                      };
+                    {
+                      ...state,
+                      step: Loaded(Ok(updatedFeed)),
+                      currentPage: page + 1,
+                    };
+                  })
+                };
+              }
+              |> P.resolve
+            );
+        } else {
+          /* Handle non-200 status */
+          ...
+        };
+      })
+  |> ignore;
+};
+```
+
+#### 11.5: Modify render code to include scroll sentinel and handling new state
+
+We’ll add a `sentinelRef` to track the last element of the list, which will
+trigger loading more data when it comes into view.
+
+In the render code, create a new React ref to track the last element of the
+list:
+
+```reason
+    let sentinelRef = React.useRef(Js.Nullable.null);
+```
+
+Also, add the element itself at the end of the `switch`:
+
+```reason
+  {switch (state.step) {
+    | InvalidUsername => <div> {React.string("Invalid username")} </div>
+    | Idle =>
+      <div>
+        {React.string(
+          "Press the \"Enter\" key to confirm the username selection.",
+        )}
+      </div>
+    | Loading(None | Some(Error(_))) =>
+      <div> {React.string("Loading...")} </div>
+    | Loading(Some(Ok(feed))) =>
+      <> {renderFeed(feed)} <div> {React.string("Loading...")} </div> </>
+    | Loaded(Error(msg)) => <div> {React.string(msg)} </div>
+    | Loaded(Ok(feed)) => renderFeed(feed)
+    }}
+  <div ref={ReactDOM.Ref.domRef(sentinelRef)} />
+```
+
+#### 11.6: Update the effect to fetch new data when observer is intersecting
+
+Finally, let's update the effect to fetch more data when the
+`IntersectionObserver` detects that the sentinel element is in the viewport.
+
+```reason
+  React.useEffect1(
+    () => {
+      switch (Username.make(state.username)) {
+      | Error () =>
+        Js.Exn.raiseError("The value of state.username is invalid")
+      | Ok(username) =>
+        switch (Js.Nullable.toOption(sentinelRef.current)) {
+        | None =>
+          ();
+          None;
+        | Some(elem) =>
+          let shouldFetch =
+            switch (state.step) {
+            | Loading(_) => false
+            | Loaded(Ok({entries: [||]})) => false
+            | Idle
+            | InvalidUsername
+            | Loaded(_) => true
+            };
+          let observer =
+            IntersectionObserver.make(entries => {
+              let entry = entries[0];
+              if (entry.isIntersecting && shouldFetch) {
+                fetchFeed(~username, ~page=state.currentPage);
+              };
+            });
+          IntersectionObserver.observe(observer, elem);
+          Some(() => IntersectionObserver.disconnect(observer));
+        }
+      }
+    },
+    [|state|],
+  );
+```
+
+### Step 11 completion check
+
+Restart the dev server and scroll to the bottom of the page in your browser. The
+app should automatically fetch more data and append it to the feed, creating an
+infinite scroll effect.
+
 ## Project layout
 
 The following is a high level view of your project and application. Many of
