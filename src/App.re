@@ -16,28 +16,73 @@
 
 type step =
   | Idle /* There is no request going on, and no data to be shown. In this case, we will just show instructions to proceed with the request. */
-  | Loading /* A request is currently taking place to fetch the feed. */
+  | Loading(option(result(Feed.feed, string))) /* A request is currently taking place to fetch the feed. Stores the previously fetched feed. */
   | InvalidUsername /* The entered username is not a valid GitHub ID. */
   | Loaded(result(Feed.feed, string)); /* A request has finished, its result is contained inside the variant value itself. */
 
 type state = {
   username: string,
   step,
+  currentPage: int,
 };
+
+let mergeFeeds = (oldFeed: Feed.feed, newFeed: Feed.feed): Feed.feed => {
+  let combinedEntries = Array.concat([oldFeed.entries, newFeed.entries]);
+  {entries: combinedEntries};
+};
+
+let renderFeed = (feed: Feed.feed) =>
+  <div>
+    <h1> {React.string("GitHub Feed")} </h1>
+    <ul>
+      {switch (feed.entries) {
+       | [||] => React.string("This user feed is empty")
+       | entries =>
+         entries
+         |> Array.map((entry: Feed.entry) =>
+              <li key={entry.id}>
+                <h2> {React.string(entry.title)} </h2>
+                {switch (entry.content) {
+                 | None => React.null
+                 | Some(content) =>
+                   <p dangerouslySetInnerHTML={"__html": content} />
+                 }}
+              </li>
+            )
+         |> React.array
+       }}
+    </ul>
+  </div>;
 
 module App = {
   [@react.component]
   let make = () => {
     let (state, setState) =
-      React.useState(() => {username: "jchavarri", step: Idle});
+      React.useState(() =>
+        {username: "jchavarri", step: Idle, currentPage: 1}
+      );
+    let sentinelRef = React.useRef(Js.Nullable.null);
 
-    let fetchFeed = user => {
-      setState(state => {...state, step: Loading});
+    let fetchFeed = (~username, ~page) => {
+      setState(state =>
+        {
+          ...state,
+          step:
+            switch (state.step) {
+            | Loaded(r)
+            | Loading(Some(r)) => Loading(Some(r))
+            | Loading(None)
+            | Idle
+            | InvalidUsername => Loading(None)
+            },
+        }
+      );
       module P = Js.Promise;
       Fetch.fetch(
         "https://gh-feed.vercel.app/api?user="
-        ++ Username.toString(user)
-        ++ "&page=1",
+        ++ Username.toString(username)
+        ++ "&page="
+        ++ string_of_int(page),
       )
       |> P.then_(response => {
            let status = Fetch.Response.status(response);
@@ -53,7 +98,26 @@ module App = {
                         Js.Console.error(msg);
                         Error("Failed to decode: " ++ msg);
                       };
-                    setState(state => {...state, step: Loaded(data)});
+
+                    switch (data) {
+                    | Error(_) =>
+                      setState(state => {...state, step: Loaded(data)})
+                    | Ok(data) =>
+                      setState(state => {
+                        let updatedFeed =
+                          switch (state.step) {
+                          | Loaded(Ok(feed))
+                          | Loading(Some(Ok(feed))) =>
+                            mergeFeeds(feed, data)
+                          | _ => data
+                          };
+                        {
+                          ...state,
+                          step: Loaded(Ok(updatedFeed)),
+                          currentPage: page + 1,
+                        };
+                      })
+                    };
                   }
                   |> P.resolve
                 );
@@ -76,24 +140,49 @@ module App = {
       |> ignore;
     };
 
-    React.useEffect0(() => {
-      switch (Username.make(state.username)) {
-      | Ok(username) => fetchFeed(username)
-      | Error () =>
-        Js.Exn.raiseError(
-          "Initial username passed to React.useState is invalid",
-        )
-      };
-      None;
-    });
+    React.useEffect1(
+      () => {
+        switch (Username.make(state.username)) {
+        | Error () =>
+          Js.Exn.raiseError("The value of state.username is invalid")
+        | Ok(username) =>
+          switch (Js.Nullable.toOption(sentinelRef.current)) {
+          | None =>
+            ();
+            None;
+          | Some(elem) =>
+            let shouldFetch =
+              switch (state.step) {
+              | Loading(_) => false
+              | Loaded(Ok({entries: [||]})) => false
+              | Idle
+              | InvalidUsername
+              | Loaded(_) => true
+              };
+            let observer =
+              IntersectionObserver.make(entries => {
+                let entry = entries[0];
+                if (entry.isIntersecting && shouldFetch) {
+                  fetchFeed(~username, ~page=state.currentPage);
+                };
+              });
+            IntersectionObserver.observe(observer, elem);
+            Some(() => IntersectionObserver.disconnect(observer));
+          }
+        }
+      },
+      [|state|],
+    );
 
     <div>
       <UsernameInput
         username={state.username}
-        onChange={value => {setState(_ => {username: value, step: Idle})}}
+        onChange={value => {
+          setState(_ => {...state, username: value, step: Idle})
+        }}
         onEnterKeyDown={() =>
           switch (Username.make(state.username)) {
-          | Ok(username) => fetchFeed(username)
+          | Ok(username) => fetchFeed(~username, ~page=1)
           | Error () => setState(state => {...state, step: InvalidUsername})
           }
         }
@@ -106,31 +195,14 @@ module App = {
               "Press the \"Enter\" key to confirm the username selection.",
             )}
          </div>
-       | Loading => <div> {React.string("Loading...")} </div>
+       | Loading(None | Some(Error(_))) =>
+         <div> {React.string("Loading...")} </div>
+       | Loading(Some(Ok(feed))) =>
+         <> {renderFeed(feed)} <div> {React.string("Loading...")} </div> </>
        | Loaded(Error(msg)) => <div> {React.string(msg)} </div>
-       | Loaded(Ok(feed)) =>
-         <div>
-           <h1> {React.string("GitHub Feed")} </h1>
-           <ul>
-             {switch (feed.entries) {
-              | [||] => React.string("This user feed is empty")
-              | entries =>
-                entries
-                |> Array.map((entry: Feed.entry) =>
-                     <li key={entry.id}>
-                       <h2> {React.string(entry.title)} </h2>
-                       {switch (entry.content) {
-                        | None => React.null
-                        | Some(content) =>
-                          <p dangerouslySetInnerHTML={"__html": content} />
-                        }}
-                     </li>
-                   )
-                |> React.array
-              }}
-           </ul>
-         </div>
+       | Loaded(Ok(feed)) => renderFeed(feed)
        }}
+      <div ref={ReactDOM.Ref.domRef(sentinelRef)} />
     </div>;
   };
 };
