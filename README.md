@@ -652,6 +652,7 @@ state:
   <input
     id="username-input"
     value=username
+    placeholder="Enter GitHub username"
     onChange={event => {
       setUsername(event->React.Event.Form.target##value)
     }}
@@ -662,7 +663,6 @@ state:
         fetchFeed(username);
       };
     }}
-    placeholder="Enter GitHub username"
   />
 </div>
 ```
@@ -953,6 +953,7 @@ let make = (~username, ~onChange, ~onEnterKeyDown) =>
     <input
       id="username-input"
       value=username
+      placeholder="Enter GitHub username"
       onChange={event => onChange(event->React.Event.Form.target##value)}
       onKeyDown={event => {
         let enterKey = 13;
@@ -960,7 +961,6 @@ let make = (~username, ~onChange, ~onEnterKeyDown) =>
           onEnterKeyDown();
         };
       }}
-      placeholder="Enter GitHub username"
     />
   </div>;
 ```
@@ -989,13 +989,19 @@ let make = (~username, ~onChange, ~onEnterKeyDown) =>
 ```
 
 Finally, let's update the `src/dune` file to include the CSS file as a runtime
-dependency in the `app` library:
+dependency in the `app` library. This step is necessary because Melange needs to
+know about any external resources that are used during runtime. By adding the
+CSS file as a runtime dependency, we ensure that Melange correctly handles and
+includes the styles in the build output. This output is placed in the
+`_build/default` directory, you generally won’t need to interact with this
+folder directly unless you’re troubleshooting or diving deeper into the build
+process.
 
 ```
 (library
  (name app)
  ...
- (melange.runtime_deps UsernameInput.module.css)
+ (melange.runtime_deps img/camel-fun.jpg UsernameInput.module.css)
  ...)
 ```
 
