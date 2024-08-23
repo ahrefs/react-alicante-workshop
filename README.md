@@ -1015,8 +1015,9 @@ Since Esbuild supports local CSS modules out of the box, just ensure that the
 ```
 ### Step 10 completion check
 
-Voilà! When opening the browser, we should now see a more stylish input field,
-which will enhance the user experience.
+Voilà! Since we updated `index.html`, you'll need to restart the dev server. Go
+ahead and stop the `npm run serve` process, then start it again. When you open
+the browser, you should see a more stylish input field.
 
 ## Project layout
 
