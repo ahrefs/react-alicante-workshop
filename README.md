@@ -1019,12 +1019,12 @@ Voilà! Since we updated `index.html`, you'll need to restart the dev server. Go
 ahead and stop the `npm run serve` process, then start it again. When you open
 the browser, you should see a more stylish input field.
 
-### Step 11: Automatically fetch more data on scroll
+## Step 11: Automatically fetch more data on scroll
 
 In this step, we'll implement "infinite scroll" to automatically fetch more data
 as the user scrolls to the bottom of the feed.
 
-#### 11.1: Add bindings to `IntersectionObserver`
+### 11.1: Add bindings to `IntersectionObserver`
 
 We need to create bindings for `IntersectionObserver` to detect when the user
 has scrolled to the bottom of the feed.
@@ -1049,7 +1049,7 @@ type observer;
 [@mel.new] external make: (array(entry) => unit) => observer = "IntersectionObserver";
 ```
 
-#### 11.2: Update state for pagination
+### 11.2: Update state for pagination
 
 We’ll update our state to track the current page of the feed. We’ll also store
 the previous feed when in the `Loading` state.
@@ -1071,7 +1071,7 @@ let (state, setState) =
   React.useState(() => {username: "jchavarri", step: Idle, currentPage: 1});
 ```
 
-#### 11.3: Add helper functions `mergeFeeds` and `renderFeed`
+### 11.3: Add helper functions `mergeFeeds` and `renderFeed`
 
 We are going to be needing these two functions, both can be placed outside the
 `make` function of `App.re`.
@@ -1113,7 +1113,7 @@ let renderFeed = (feed: Feed.feed) =>
   </div>;
 ```
 
-#### 11.4: Modify `fetchFeed` to support pagination
+### 11.4: Modify `fetchFeed` to support pagination
 
 Update `fetchFeed` to accept a `page` parameter and include it in the API
 request. We’ll use [labeled
@@ -1188,7 +1188,7 @@ let fetchFeed = (~username, ~page) => {
 };
 ```
 
-#### 11.5: Modify render code to include scroll sentinel and handling new state
+### 11.5: Modify render code to include scroll sentinel and handling new state
 
 We’ll add a `sentinelRef` to track the last element of the list, which will
 trigger loading more data when it comes into view.
@@ -1221,7 +1221,7 @@ Also, add the element itself at the end of the `switch`:
   <div ref={ReactDOM.Ref.domRef(sentinelRef)} />
 ```
 
-#### 11.6: Update the effect to fetch new data when observer is intersecting
+### 11.6: Update the effect to fetch new data when observer is intersecting
 
 Finally, let's update the effect to fetch more data when the
 `IntersectionObserver` detects that the sentinel element is in the viewport.
