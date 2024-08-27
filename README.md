@@ -1200,6 +1200,15 @@ list:
     let sentinelRef = React.useRef(Js.Nullable.null);
 ```
 
+> [!TIP]
+> 
+> `Js.Nullable.t` is a type that represents a JavaScript value that could be
+> either `null` or `undefined`. It differs from OCaml's `Option.t`, which
+> represents a value that is either `Some(value)` or `None`.
+> 
+> `Js.Nullable.t` is primarily used for interacting with JavaScript APIs that
+> return `null` or `undefined`. `Option.t` is more idiomatic to OCaml.
+
 Also, add the element itself at the end of the `switch`:
 
 ```reason
