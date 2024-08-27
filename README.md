@@ -1235,7 +1235,6 @@ Finally, let's update the effect to fetch more data when the
       | Ok(username) =>
         switch (Js.Nullable.toOption(sentinelRef.current)) {
         | None =>
-          ();
           None;
         | Some(elem) =>
           let shouldFetch =
@@ -1264,9 +1263,8 @@ Finally, let's update the effect to fetch more data when the
 
 ### Step 11 completion check
 
-Restart the dev server and scroll to the bottom of the page in your browser. The
-app should automatically fetch more data and append it to the feed, creating an
-infinite scroll effect.
+Scroll to the bottom of the page in your browser. The app should automatically
+fetch more data and append it to the feed, creating an infinite scroll effect.
 
 ## Project layout
 
