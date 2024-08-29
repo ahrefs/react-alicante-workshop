@@ -1242,6 +1242,8 @@ Finally, let's update the effect to fetch more data when the
       | Error () =>
         Js.Exn.raiseError("The value of state.username is invalid")
       | Ok(username) =>
+        /* Use option to be able to use `switch`. Can't use pattern match when
+        using abstract types like `Js.Nullable.t` */
         switch (Js.Nullable.toOption(sentinelRef.current)) {
         | None =>
           None;
