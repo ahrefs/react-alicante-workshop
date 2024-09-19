@@ -267,7 +267,7 @@ module Decode = {
   let entry = json =>
     Json.Decode.{
       content: json |> optional(field("content", string)),
-      id: json |> optional(field("id", string)),
+      id: json |> field("id", string),
       links: json |> field("links", array(link)),
       title: json |> field("title", string),
       updated: json |> field("updated", float),
