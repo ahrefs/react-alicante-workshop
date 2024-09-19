@@ -144,7 +144,7 @@ module App = {
       () => {
         switch (Username.make(state.username)) {
         | Error () =>
-          Js.Exn.raiseError("The value of state.username is invalid")
+          (); None
         | Ok(username) =>
           switch (Js.Nullable.toOption(sentinelRef.current)) {
           | None =>
