@@ -201,7 +201,7 @@
 
       // Display the cause, if available
       if (error.cause && error.cause !== undefined) {
-        errorCauseMessage.innerText = JSON.stringify(error.cause, null, 2);
+        errorCauseMessage.innerText = error.cause;
         errorCause.classList.remove('hidden');
       } else {
         errorCause.classList.add('hidden');
