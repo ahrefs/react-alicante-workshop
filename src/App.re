@@ -155,7 +155,7 @@ module App = {
               switch (state.step) {
               | Loading(_) => false
               | Loaded(Ok({entries: [||]})) => false
-              | Idle
+              | Idle => false
               | InvalidUsername
               | Loaded(_) => true
               };
